@@ -24,6 +24,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+const normalizeOrigin = (value) => {
+  if (!value) return '';
+
+  return value.trim().replace(/\/+$/, '').toLowerCase();
+};
+
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is required');
 }
@@ -44,7 +50,7 @@ if (!fs.existsSync(uploadDir)) {
 
 const configuredOrigins = (process.env.FRONTEND_ORIGIN || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean);
 
 const allowedOrigins =
@@ -58,22 +64,32 @@ const apiLimiter = createRateLimiter({
   message: 'Too many requests. Please try again later.',
 });
 
+const corsOptions = {
+  origin(origin, callback) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (
+      !normalizedOrigin ||
+      allowedOrigins.length === 0 ||
+      allowedOrigins.includes(normalizedOrigin)
+    ) {
+      return callback(null, true);
+    }
+
+    const error = new Error(`CORS origin not allowed: ${origin}`);
+    error.statusCode = 403;
+    return callback(error);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+};
+
 // Middleware
 app.disable('x-powered-by');
 app.use(securityHeaders);
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error('CORS origin not allowed'));
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/api', apiLimiter);
