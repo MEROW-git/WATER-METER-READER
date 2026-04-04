@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  passwordHash  String   @map("password_hash")
+  fullName      String   @map("full_name")
+  role          UserRole @default(staff)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  uploadedLists     ReadingList[]  @relation("UploadedBy")
+  assignedRecords   MeterRecord[]  @relation("AssignedTo")
+  completedRecords  MeterRecord[]  @relation("CompletedBy")
+  assignments       Assignment[]   @relation("AssignedTo")
+  assignmentsMade   Assignment[]   @relation("AssignedBy")
+  activityLogs      ActivityLog[]
+
+  @@map("users")
+}
+
+model ReadingList {
+  id                Int           @id @default(autoincrement())
+  listName          String        @map("list_name")
+  sheetDate         DateTime?     @map("sheet_date")
+  uploadedFileName  String        @map("uploaded_file_name")
+  status            ListStatus    @default(draft)
+  uploadedBy        Int           @map("uploaded_by")
+  hiddenFromStaff   Boolean       @default(false) @map("hidden_from_staff")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  uploader    User           @relation("UploadedBy", fields: [uploadedBy], references: [id])
+  records     MeterRecord[]
+  assignments Assignment[]
+
+  @@map("reading_lists")
+}
+
+model MeterRecord {
+  id                  Int           @id @default(autoincrement())
+  readingListId       Int           @map("reading_list_id")
+  nameId              String?       @map("name_id")
+  meterId             String        @map("meter_id")
+  customer            String
+  locationId          String        @map("location_id")
+  st                  String?
+  village             String?
+  readingDate         DateTime?     @map("reading_date")
+  oldRead             Decimal?      @map("old_read") @db.Decimal(15, 2)
+  newRead             Decimal?      @map("new_read") @db.Decimal(15, 2)
+  text34              String?
+  assignedToUserId    Int?          @map("assigned_to_user_id")
+  completedByUserId   Int?          @map("completed_by_user_id")
+  completedAt         DateTime?     @map("completed_at")
+  status              RecordStatus  @default(pending)
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  readingList   ReadingList @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+  assignedTo    User?       @relation("AssignedTo", fields: [assignedToUserId], references: [id])
+  completedBy   User?       @relation("CompletedBy", fields: [completedByUserId], references: [id])
+
+  @@index([readingListId])
+  @@index([locationId])
+  @@index([assignedToUserId])
+  @@index([status])
+  @@index([meterId])
+  @@map("meter_records")
+}
+
+model Assignment {
+  id                Int       @id @default(autoincrement())
+  readingListId     Int       @map("reading_list_id")
+  locationId        String    @map("location_id")
+  assignedToUserId  Int       @map("assigned_to_user_id")
+  assignedByUserId  Int       @map("assigned_by_user_id")
+  assignedAt        DateTime  @default(now()) @map("assigned_at")
+
+  // Relations
+  readingList   ReadingList @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+  assignedTo    User        @relation("AssignedTo", fields: [assignedToUserId], references: [id])
+  assignedBy    User        @relation("AssignedBy", fields: [assignedByUserId], references: [id])
+
+  @@index([readingListId])
+  @@index([locationId])
+  @@index([assignedToUserId])
+  @@map("assignments")
+}
+
+model ActivityLog {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  actionType        String    @map("action_type")
+  description       String
+  relatedListId     Int?      @map("related_list_id")
+  relatedRecordId   Int?      @map("related_record_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+enum UserRole {
+  admin
+  staff
+
+  @@map("user_role")
+}
+
+enum ListStatus {
+  draft
+  active
+  completed
+  hidden
+  archived
+
+  @@map("list_status")
+}
+
+enum RecordStatus {
+  pending
+  in_progress
+  completed
+
+  @@map("record_status")
+}
