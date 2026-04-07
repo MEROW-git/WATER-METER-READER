@@ -13,6 +13,7 @@ import Lists from '@/pages/admin/Lists';
 import ListDetails from '@/pages/admin/ListDetails';
 import Assignments from '@/pages/admin/Assignments';
 import Reports from '@/pages/admin/Reports';
+import StaffDashboard from '@/pages/staff/Dashboard';
 import MyRecords from '@/pages/staff/MyRecords';
 import EnterReading from '@/pages/staff/EnterReading';
 import History from '@/pages/staff/History';
@@ -75,7 +76,7 @@ const HomeRedirect: React.FC = () => {
     return <Dashboard />;
   }
   
-  return <MyRecords />;
+  return <StaffDashboard />;
 };
 
 const AppRoutes: React.FC = () => {

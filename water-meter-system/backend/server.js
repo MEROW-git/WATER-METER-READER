@@ -122,9 +122,9 @@ app.listen(PORT, () => {
 ║                                                            ║
 ║     Water Meter Reading Management System - Backend        ║
 ║                                                            ║
-║     Server running on port ${PORT}                          ║
+║     Server running on port ${PORT}                         ║
 ║                                                            ║
-║     API Base URL: http://localhost:${PORT}/api              ║
+║     API Base URL: http://localhost:${PORT}/api             ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `);
